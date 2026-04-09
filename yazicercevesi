@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>Çizgili Defter Oluşturucu v5</title>
+<style>
+body{ font-family: Arial, sans-serif; background:#f4f4f4; display:flex; gap:20px; padding:20px; }
+.controls{ width:320px; background:white; padding:15px; border-radius:8px; box-shadow:0 0 10px rgba(0,0,0,0.1); }
+.preview-wrapper{ width:500px; height:500px; }
+canvas{ border:1px solid #ccc; }
+label{ font-size:13px; display:block; margin-top:8px; }
+input, textarea{ width:100%; }
+.inline{ display:flex; align-items:center; gap:5px; }
+button{ margin-top:10px; width:100%; }
+</style>
+</head>
+<body>
+
+<div class="controls">
+    <label>Metin</label>
+    <textarea id="text" rows="4">Merhaba dünya...</textarea>
+    <label>Yazı Boyutu</label>
+    <input type="number" id="fontSize" value="20">
+    <label>Satır Aralığı</label>
+    <input type="number" id="lineHeight" value="30">
+    <label>Metin Rengi</label>
+    <input type="color" id="textColor" value="#000000">
+    <label>Çizgi Rengi 1</label>
+    <input type="color" id="lineColor1" value="#a0c4ff">
+    <label>Çizgi Rengi 2</label>
+    <input type="color" id="lineColor2" value="#ffadad">
+    <label>Arka Plan Rengi</label>
+    <input type="color" id="bgColor" value="#ffffff">
+
+    <div class="inline"><input type="checkbox" id="showTop"><label>Üst Marjin</label></div>
+    <input type="number" id="marginTop" value="50">
+    <div class="inline"><input type="checkbox" id="showRight"><label>Sağ Marjin</label></div>
+    <input type="number" id="marginRight" value="40">
+    <div class="inline"><input type="checkbox" id="showBottom"><label>Alt Marjin</label></div>
+    <input type="number" id="marginBottom" value="40">
+    <div class="inline"><input type="checkbox" id="showLeft"><label>Sol Marjin</label></div>
+    <input type="number" id="marginLeft" value="50">
+
+    <button onclick="downloadImage('png')">PNG İndir</button>
+    <button onclick="downloadImage('jpeg')">JPEG İndir</button>
+</div>
+
+<div class="preview-wrapper">
+    <canvas id="canvas" width="500" height="500"></canvas>
+</div>
+
+<script>
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+
+document.querySelectorAll("input, textarea").forEach(el=>el.addEventListener("input", draw));
+
+function draw(){
+    const text = document.getElementById("text").value;
+    const fontSize = parseInt(document.getElementById("fontSize").value);
+    const lineHeight = parseInt(document.getElementById("lineHeight").value);
+    const textColor = document.getElementById("textColor").value;
+    const color1 = document.getElementById("lineColor1").value;
+    const color2 = document.getElementById("lineColor2").value;
+    const bgColor = document.getElementById("bgColor").value;
+    const marginTop = parseInt(document.getElementById("marginTop").value);
+    const marginRight = parseInt(document.getElementById("marginRight").value);
+    const marginBottom = parseInt(document.getElementById("marginBottom").value);
+    const marginLeft = parseInt(document.getElementById("marginLeft").value);
+
+    ctx.clearRect(0,0,500,500);
+    ctx.fillStyle = bgColor;
+    ctx.fillRect(0,0,500,500);
+
+    // Satırları çiz
+    let isColor1 = true;
+    for(let y = marginTop; y <= 500 - marginBottom; y += lineHeight){
+        ctx.strokeStyle = isColor1 ? color1 : color2;
+        ctx.beginPath();
+        ctx.moveTo(marginLeft, y);
+        ctx.lineTo(500 - marginRight, y);
+        ctx.stroke();
+        isColor1 = !isColor1;
+    }
+
+    // Yazıyı Hizala
+    ctx.fillStyle = textColor;
+    ctx.font = fontSize + "px Arial";
+    // Yazının alt kısmını çizgiye oturtmak için 'alphabetic' veya 'bottom' baseline kullanılır
+    ctx.textBaseline = "alphabetic";
+
+    const lines = text.split("\n");
+    lines.forEach((line, index) => {
+        const y = marginTop + (index * lineHeight);
+        if(y <= 500 - marginBottom){
+            // Yazıyı çizginin biraz üzerine oturtmak için y değerinden küçük bir offset düşüldü
+            ctx.fillText(line, marginLeft + 5, y - 2);
+        }
+    });
+
+    // Marjinler
+    ctx.setLineDash([6,6]); ctx.lineWidth = 2; ctx.strokeStyle = "red";
+    if(document.getElementById("showTop").checked){ ctx.beginPath(); ctx.moveTo(0, marginTop); ctx.lineTo(500, marginTop); ctx.stroke(); }
+    if(document.getElementById("showBottom").checked){ ctx.beginPath(); ctx.moveTo(0, 500 - marginBottom); ctx.lineTo(500, 500 - marginBottom); ctx.stroke(); }
+    if(document.getElementById("showLeft").checked){ ctx.beginPath(); ctx.moveTo(marginLeft, 0); ctx.lineTo(marginLeft, 500); ctx.stroke(); }
+    if(document.getElementById("showRight").checked){ ctx.beginPath(); ctx.moveTo(500 - marginRight, 0); ctx.lineTo(500 - marginRight, 500); ctx.stroke(); }
+    ctx.setLineDash([]);
+}
+
+function downloadImage(type){
+    const link = document.createElement("a");
+    link.download = "cizgili_defter_hizali." + type;
+    link.href = canvas.toDataURL("image/" + type);
+    link.click();
+}
+draw();
+</script>
+</body>
+</html>

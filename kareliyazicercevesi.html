@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>Marjinli Kareli Defter</title>
+<style>
+body{
+    font-family: Arial, sans-serif;
+    background:#f0f0f0;
+    margin:20px;
+}
+
+.container{
+    display:flex;
+    gap:30px;
+    align-items:flex-start;
+}
+
+.controls{
+    width:340px;
+    background:white;
+    padding:15px;
+    border-radius:8px;
+    box-shadow:0 0 10px rgba(0,0,0,0.1);
+}
+
+.controls textarea{
+    width:100%;
+}
+
+.controls input[type="number"],
+.controls input[type="color"]{
+    width:100%;
+    margin:5px 0 10px 0;
+}
+
+.margin-group{
+    margin-bottom:15px;
+}
+
+.preview{
+    background:white;
+    padding:15px;
+    border-radius:8px;
+    box-shadow:0 0 10px rgba(0,0,0,0.1);
+}
+
+canvas{
+    border:1px solid #aaa;
+}
+
+button{
+    width:100%;
+    padding:6px;
+    margin-top:8px;
+}
+</style>
+</head>
+<body>
+
+<h2>Marjinli Kareli Defter (500x500)</h2>
+
+<div class="container">
+
+<div class="controls">
+
+    <label>Metin</label>
+    <textarea id="textInput" rows="4" placeholder="Metni buraya yaz..."></textarea>
+
+    <label>Yazı Boyutu</label>
+    <input type="number" id="fontSize" value="20">
+
+    <label>Satır Aralığı</label>
+    <input type="number" id="lineHeight" value="28">
+
+    <label>Kare Boyutu</label>
+    <input type="number" id="gridSize" value="25" min="5">
+
+    <input type="checkbox" id="snapGrid"> 📐 Kareye Hizala
+
+    <div class="margin-group">
+        <strong>Marjinler</strong><br><br>
+
+        <input type="checkbox" id="checkTop" checked> Üst
+        <input type="number" id="marginTop" value="60">
+
+        <input type="checkbox" id="checkRight" checked> Sağ
+        <input type="number" id="marginRight" value="60">
+
+        <input type="checkbox" id="checkBottom" checked> Alt
+        <input type="number" id="marginBottom" value="60">
+
+        <input type="checkbox" id="checkLeft" checked> Sol
+        <input type="number" id="marginLeft" value="60">
+    </div>
+
+    <label>Metin Rengi</label>
+    <input type="color" id="textColor" value="#000000">
+
+    <label>Çizgi Rengi</label>
+    <input type="color" id="lineColor" value="#c0c0c0">
+
+    <label>Arka Plan</label>
+    <input type="color" id="bgColor" value="#ffffff">
+
+    <button onclick="exportPNG()">PNG Aktar</button>
+    <button onclick="exportJPG()">JPEG Aktar</button>
+
+</div>
+
+<div class="preview">
+    <canvas id="canvas" width="500" height="500"></canvas>
+</div>
+
+</div>
+
+<script>
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+
+const inputs = document.querySelectorAll("input, textarea");
+inputs.forEach(input => {
+    input.addEventListener("input", draw);
+});
+
+function draw(){
+
+    const text = document.getElementById("textInput").value;
+    const fontSize = parseInt(document.getElementById("fontSize").value);
+    let lineHeight = parseInt(document.getElementById("lineHeight").value);
+    const gridSize = parseInt(document.getElementById("gridSize").value);
+
+    const snap = document.getElementById("snapGrid").checked;
+
+    const marginTop = parseInt(document.getElementById("marginTop").value);
+    const marginRight = parseInt(document.getElementById("marginRight").value);
+    const marginBottom = parseInt(document.getElementById("marginBottom").value);
+    const marginLeft = parseInt(document.getElementById("marginLeft").value);
+
+    const checkTop = document.getElementById("checkTop").checked;
+    const checkRight = document.getElementById("checkRight").checked;
+    const checkBottom = document.getElementById("checkBottom").checked;
+    const checkLeft = document.getElementById("checkLeft").checked;
+
+    const textColor = document.getElementById("textColor").value;
+    const lineColor = document.getElementById("lineColor").value;
+    const bgColor = document.getElementById("bgColor").value;
+
+    ctx.clearRect(0,0,500,500);
+
+    // Arka plan
+    ctx.fillStyle = bgColor;
+    ctx.fillRect(0,0,500,500);
+
+    // Kareli çizgiler
+    ctx.strokeStyle = lineColor;
+    ctx.lineWidth = 1;
+
+    for(let i=0; i<=500; i+=gridSize){
+        ctx.beginPath();
+        ctx.moveTo(i,0);
+        ctx.lineTo(i,500);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(0,i);
+        ctx.lineTo(500,i);
+        ctx.stroke();
+    }
+
+    // Marjin çizgileri
+    ctx.strokeStyle = "red";
+    ctx.lineWidth = 2;
+
+    if(checkLeft){
+        ctx.beginPath();
+        ctx.moveTo(marginLeft,0);
+        ctx.lineTo(marginLeft,500);
+        ctx.stroke();
+    }
+
+    if(checkRight){
+        ctx.beginPath();
+        ctx.moveTo(500-marginRight,0);
+        ctx.lineTo(500-marginRight,500);
+        ctx.stroke();
+    }
+
+    if(checkTop){
+        ctx.beginPath();
+        ctx.moveTo(0,marginTop);
+        ctx.lineTo(500,marginTop);
+        ctx.stroke();
+    }
+
+    if(checkBottom){
+        ctx.beginPath();
+        ctx.moveTo(0,500-marginBottom);
+        ctx.lineTo(500,500-marginBottom);
+        ctx.stroke();
+    }
+
+    // Snap to Grid
+    if(snap){
+        lineHeight = gridSize;
+    }
+
+    ctx.fillStyle = textColor;
+    ctx.font = fontSize + "px Arial";
+
+    const maxWidth = 500 - marginLeft - marginRight;
+
+    // Başlangıç Y'yi kareye hizala
+    let startY = snap
+        ? Math.ceil(marginTop / gridSize) * gridSize
+        : marginTop + lineHeight;
+
+    let y = startY;
+
+    const lines = text.split("\n");
+
+    lines.forEach(line=>{
+        if(y < 500 - marginBottom){
+            ctx.fillText(line, marginLeft + 10, y, maxWidth - 10);
+            y += lineHeight;
+        }
+    });
+}
+
+function exportPNG(){
+    const link = document.createElement('a');
+    link.download = "defter.png";
+    link.href = canvas.toDataURL("image/png");
+    link.click();
+}
+
+function exportJPG(){
+    const link = document.createElement('a');
+    link.download = "defter.jpg";
+    link.href = canvas.toDataURL("image/jpeg", 1.0);
+    link.click();
+}
+
+draw();
+</script>
+
+</body>
+</html>
